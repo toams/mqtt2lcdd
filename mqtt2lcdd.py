@@ -34,11 +34,11 @@ c.add_screen(scr)
 
 
 # initialise mqtt
-broker = "broker.hivemq.com"  # replace with rpi3.local
-topic_ti = "house/wetterstation/temp"  # inside temp topic
-# topic_to =
-topic_flame = "house/wetterstation/luftfeuchtigkeit"  # burner % topic
-topics = [(topic_ti, 0), (topic_flame, 0), ]  # junkers topics goes here
+broker = "rpi3.local"  # replace with rpi3.local
+topic_ti = "rpi3/hometop/ht/hc1_Tmeasured"  # inside temp topic
+topic_to = "rpi3/hometop/ht/ch_Toutside"
+topic_flame = "rpi3/hometop/ht/ch_burner_power"  # burner % topic
+topics = [(topic_ti, 0), (topic_flame, 0), (topic_to,0)]  # junkers topics goes here
 
 
 # define mqtt on_connect callback
@@ -55,6 +55,8 @@ def on_message(client, userdata, message):
         flame_v.text = value + '%'
     elif message.topic == topic_ti:
         ti_v.text = value + 'C'
+    elif message.topic == topic_to:
+        to_v.text = value + 'C'
     else:
         print("invalid topic")
     c.update_screens([scr])

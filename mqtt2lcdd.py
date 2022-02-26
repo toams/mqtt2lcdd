@@ -4,7 +4,8 @@ import pylcddc.client as client
 import pylcddc.widgets as widget
 import pylcddc.screen as screen
 import pylcddc.exceptions as lcdexcept
-import paho.mqtt.client as mqtt
+import paho.mqtt.subscribe as subscribe
+import schedule
 
 
 # initialise lcd
@@ -16,11 +17,11 @@ lcd_port = '13666'
 # #>***%  To=-**.*C#
 # ##################
 
-clock = widget.String('clock', 1, 1, time.strftime("%H:%M", time.localtime()))
+clock = widget.String('clock', 1, 1, 'HH:MM')
 ti = widget.String('ti', 8, 1, 'Ti=')
-ti_v = widget.String('ti_v', 10, 1, '**.*C')
+ti_v = widget.String('ti_v', 11, 1, '**.*C')
 to = widget.String('to', 8, 2, 'Tb=')
-to_v = widget.String('to_v', 10, 2, '**.*C')
+to_v = widget.String('to_v', 11, 2, '**.*C')
 flame = widget.Icon('flame', 1, 2, widget.Icon.IconType.FF)
 flame_v = widget.String('flame_v', 2, 2, '***%')
 
@@ -28,67 +29,41 @@ scr = screen.Screen('Temperature',
                     (clock, ti, ti_v, to, to_v, flame, flame_v),
                     heartbeat=screen.ScreenAttributeValues.Heartbeat.OFF)
 c = client.Client(lcd_host, lcd_port)
-width, height = (c.server_information_response.lcd_width,
-                 c.server_information_response.lcd_height)
 c.add_screen(scr)
 
 
 # initialise mqtt
-broker = "rpi3.local"  # replace with rpi3.local
+broker = "rpi3.local"  # broker address
 topic_ti = "rpi3/hometop/ht/hc1_Tmeasured"  # inside temp topic
 topic_to = "rpi3/hometop/ht/ch_Toutside"
 topic_flame = "rpi3/hometop/ht/ch_burner_power"  # burner % topic
-topics = [(topic_ti, 0), (topic_flame, 0), (topic_to,0)]  # junkers topics goes here
+topics = [(topic_ti, 0), (topic_flame, 0), (topic_to,0)]
+value = ['', '', '']  # values received from broker will be stored here
 
 
-# define mqtt on_connect callback
-def on_connect(client, userdata, flags, rc):
-    print("Connected to broker")
-    client.connected_flag = True
-    client.subscribe(topics)
-
-
-# define mqtt on_message callback
-def on_message(client, userdata, message):
-    value = (message.payload.decode("utf-8"))
-    if message.topic == topic_flame:
-        flame_v.text = value + '%'
-    elif message.topic == topic_ti:
-        ti_v.text = value + 'C'
-    elif message.topic == topic_to:
-        to_v.text = value + 'C'
-    else:
-        print("invalid topic")
+def update_screen():
+    for i in range(len(topics)):
+        msg = subscribe.simple(topics[i], hostname=broker)
+        value[i] = (msg.payload.decode("utf-8"))
+    ti_v.text = f'{value[0]:>5}C'
+    flame_v.text = f'{value[1]:>3}%'
+    to_v.text = f'{value[2]:>5}C'
+    clock.text = time.strftime("%H:%M", time.localtime())
     c.update_screens([scr])
 
-# TODO define on_disconnect callback
 
-
-# create mqtt client
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
-client.connected_flag = False
-client.message = 'Waiting for value'
-client.connect(broker)
-client.loop_start()
-
-# TODO define disconnect
-
-
-# wait for connection with broker
-while not client.connected_flag:
-    print("Connecting to broker")
-    time.sleep(.1)
-
+update_screen()
+schedule.every().minute.at(":00").do(update_screen)
 # main loop
 try:
     while True:
-        time.sleep(.1)
+        schedule.run_pending()
+        time.sleep(1)
+
 except lcdexcept.RequestError as e:
     print('LCDd refused our request', e)
 except lcdexcept.FatalError as e:
     print('pylcddc fatal internal error', e)
 except KeyboardInterrupt:
-    print('exitting')
+    print('exiting')
 # TODO add mqtt except

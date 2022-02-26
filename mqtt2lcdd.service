@@ -1,0 +1,10 @@
+[Unit]
+Description=mqtt2lcdd
+After=multi-user.target lcdd.service
+
+[Service]
+User=pi
+Type=idle
+ExecStart=/usr/bin/python3 /home/pi/HA/mqtt2lcdd/mqtt2lcdd.py
+[Install]
+WantedBy=multi-user.target

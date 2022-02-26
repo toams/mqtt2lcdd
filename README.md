@@ -6,3 +6,9 @@ Makes use of the following:
 * [pylcddc](https://pypi.org/project/pylcddc/). A python library for interfacing with LCDd, the server component of the commonly known LCDproc
 * [Mosquitto MQTT broker](https://mosquitto.org/)
 * [hometop_HT3](https://github.com/norberts1/hometop_HT3). Used for reading various values from my heaters system-bus and sending them to the MQTT broker
+
+Autostart the script on boot:
+1. Make sure the paths in the mqtt2lcdd.service file are correct
+2. ```sudo cp mqtt2lcdd.service /etc/systemd/system/mqtt2lcdd.service```
+3. ```sudo systemctl enable mqtt2lcdd.service```
+4. ```sudo systemctl start mqtt2lcdd.service```

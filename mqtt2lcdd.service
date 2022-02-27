@@ -1,6 +1,6 @@
 [Unit]
 Description=mqtt2lcdd
-After=multi-user.target lcdd.service
+After=multi-user.target LCDd.service
 
 [Service]
 User=pi
